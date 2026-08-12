@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0878d1">
+  <meta name="theme-color" content="#160b22">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="ナスカレ取込">
@@ -11,57 +11,62 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>ナスカレ勤務カレンダー</title>
   <style>
-    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
+    :root { color-scheme: dark; font-family: Inter, -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; --pink:#ff4fa3; --pink-soft:#ff8bc1; --panel:#24142fdd; --line:#ffffff18; --text:#fff7fb; --muted:#cbbdce; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #f3f5f7; color: #16202a; }
-    main { width: min(920px, calc(100% - 32px)); margin: 32px auto 64px; }
-    header, section { background: white; border: 1px solid #dce2e7; border-radius: 16px; padding: 22px; margin-bottom: 16px; box-shadow: 0 3px 12px #1e2a3610; }
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    h2 { margin: 0 0 16px; font-size: 19px; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 12% 5%, #91295c55 0, transparent 32%), radial-gradient(circle at 90% 18%, #db367644 0, transparent 30%), linear-gradient(145deg, #12091c, #221029 55%, #140a1d); color: var(--text); }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.16; background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px); background-size:64px 64px; mask-image:linear-gradient(to bottom,#000,transparent 68%); }
+    main { position:relative; width:min(960px, calc(100% - 32px)); margin:40px auto 72px; }
+    header, section { background:linear-gradient(145deg,#2b1838e8,#1d1129dc); border:1px solid var(--line); border-radius:24px; padding:26px; margin-bottom:18px; box-shadow:0 20px 70px #07030c66, inset 0 1px #ffffff12; backdrop-filter:blur(18px); }
+    header { padding:48px 34px; overflow:hidden; position:relative; }
+    header::after { content:""; position:absolute; width:260px; height:260px; right:-80px; top:-120px; border-radius:50%; background:#ff3d9a; filter:blur(60px); opacity:.3; }
+    .eyebrow { color:var(--pink-soft); text-transform:uppercase; letter-spacing:.16em; font-size:12px; font-weight:800; }
+    h1 { position:relative; z-index:1; margin:8px 0 10px; font-size:clamp(32px,6vw,54px); letter-spacing:-.045em; line-height:1.05; }
+    h1 span { background:linear-gradient(90deg,#fff 15%,#ff8bc1 65%,#ff4fa3); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    h2 { margin:0 0 18px; font-size:20px; letter-spacing:-.01em; }
     p { line-height: 1.65; }
-    .muted { color: #62707d; font-size: 14px; }
+    .muted { color:var(--muted); font-size:14px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; }
-    label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+    label { display:grid; gap:7px; color:#eadfea; font-size:13px; font-weight:700; }
     input, select, button { font: inherit; }
-    input, select { width: 100%; border: 1px solid #bcc7d0; border-radius: 9px; padding: 9px 11px; background: white; }
-    button { border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; background: #e8edf1; color: #17212b; font-weight: 600; }
-    button:hover { filter: brightness(.97); }
-    button.primary { background: #0878d1; color: white; padding: 13px 22px; font-size: 16px; }
-    button.secondary { background: #eef2f5; }
-    button.danger { color: #9d2630; }
+    input, select { width:100%; border:1px solid #ffffff20; border-radius:12px; padding:11px 13px; background:#100918aa; color:var(--text); outline:none; }
+    input:focus, select:focus { border-color:#ff69ad; box-shadow:0 0 0 3px #ff4fa326; }
+    input[type=file] { padding:18px; border:1px dashed #ff7ab799; background:#ff4fa30b; }
+    input[type=file]::file-selector-button { border:0; border-radius:9px; padding:9px 13px; margin-right:12px; background:#ff4fa326; color:#ffd9eb; font-weight:700; }
+    button { border:1px solid #ffffff16; border-radius:12px; padding:11px 16px; cursor:pointer; background:#ffffff0d; color:#fceff6; font-weight:700; transition:.2s ease; }
+    button:hover { transform:translateY(-1px); background:#ffffff16; border-color:#ff75b55c; }
+    button.primary, #readImagesButton { background:linear-gradient(100deg,#ff318c,#dc3b9b); color:white; border:0; padding:13px 21px; box-shadow:0 10px 30px #e82f8c35; }
+    button.danger { color:#ff9fc9; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-bottom: 14px; }
-    .toolbar .count { margin-left: auto; color: #53616e; font-size: 14px; }
+    .toolbar .count { margin-left:auto; color:#ff9fc9; font-size:14px; font-weight:700; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #e4e9ed; padding: 8px 7px; text-align: left; }
-    th { color: #53616e; font-size: 13px; }
+    th, td { border-bottom:1px solid #ffffff10; padding:9px 7px; text-align:left; }
+    th { color:#a99aad; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
     td:first-child { width: 48px; }
     td:nth-child(2) { width: 52px; }
     td:last-child { width: 74px; text-align: center; }
-    tr.weekend td:first-child, tr.weekend td:nth-child(2) { color: #c3283d; }
-    .include { width: 20px; height: 20px; }
-    .status { min-height: 24px; margin-top: 12px; color: #116529; font-weight: 600; }
-    .notice { border-left: 4px solid #df9c18; padding: 10px 14px; background: #fff8e8; border-radius: 6px; }
-    .image-status { min-height: 24px; margin-top: 12px; font-weight: 600; color: #24435d; }
-    footer { color: #687581; text-align: center; font-size: 13px; }
-    @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } main { width: min(100% - 18px, 920px); margin-top: 10px; } header, section { padding: 16px; border-radius: 12px; } }
+    tr.weekend td:first-child, tr.weekend td:nth-child(2) { color:#ff72ae; }
+    .include { width:20px; height:20px; accent-color:var(--pink); }
+    .status { min-height:24px; margin-top:14px; color:#ffaad0; font-weight:700; }
+    .notice { border-left:3px solid var(--pink); padding:11px 14px; background:#ff4fa310; border-radius:8px; color:#e8dce8; }
+    .image-status { min-height:24px; margin-top:14px; font-weight:700; color:#ffabd1; }
+    footer { color:#928397; text-align:center; font-size:13px; }
+    @media (max-width:620px) { .grid{grid-template-columns:1fr} main{width:min(100% - 18px,960px);margin-top:10px} header,section{padding:18px;border-radius:18px} header{padding:34px 22px}.toolbar .count{width:100%;margin:5px 0 0} }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>ナスカレ勤務カレンダー</h1>
+    <div class="eyebrow">Private · On-device · Simple</div>
+    <h1><span>ナスカレ勤務</span><br>カレンダー</h1>
     <p>勤務表を確認・修正して、iOS標準カレンダー用の <strong>.ics</strong> ファイルを書き出します。</p>
     <p class="muted">MacとiPhoneのSafariで動作します。画像や勤務情報を外部へ送信しません。</p>
   </header>
 
   <section>
     <h2>1. スクリーンショットを読み取る</h2>
-    <div class="grid">
-      <label>前半の画像（1日を含む）<input id="firstImage" type="file" accept="image/*"></label>
-      <label>後半の画像（前半と日付が重なる画像）<input id="secondImage" type="file" accept="image/*"></label>
-    </div>
-    <p class="muted">ナスカレのスクリーンショットを時系列順に選択してください。「は」列の文字色を端末内で判定します。</p>
-    <button id="readImagesButton" type="button">2枚の画像から「は」列を読み取る</button>
+    <label>勤務表の画像を2枚選択<input id="shiftImages" type="file" accept="image/*" multiple></label>
+    <p class="muted">選択順は問いません。画像の重複と位置から前半・後半を自動判定し、勤務表の2列目を端末内で読み取ります。</p>
+    <button id="readImagesButton" type="button">2枚の画像から2列目を読み取る</button>
     <div id="imageStatus" class="image-status" role="status"></div>
   </section>
 
@@ -79,7 +84,7 @@
   </section>
 
   <section>
-    <h2>3. 「は」列の勤務</h2>
+    <h2>3. 2列目の勤務</h2>
     <div class="toolbar">
       <button id="allButton" type="button">全種類を選択</button>
       <button id="workButton" type="button">日勤・夜勤のみ</button>
@@ -101,7 +106,7 @@
     <p class="muted">iPhoneへAirDropしてファイルを開くと、標準カレンダーへ読み込めます。同じファイルを複数回読み込むと予定が重複する可能性があります。</p>
   </section>
 
-  <footer>初期データ: 2026年8月 ナスカレ「は」列</footer>
+  <footer>初期データ: 2026年8月 ナスカレ勤務表 2列目</footer>
 </main>
 
 <script>
@@ -255,7 +260,10 @@
       }
     }
     if (band) rows.push(band);
-    return rows.map(row => Object.entries(row.counts).sort((a, b) => b[1] - a[1])[0][0]);
+    return {
+      values: rows.map(row => Object.entries(row.counts).sort((a, b) => b[1] - a[1])[0][0]),
+      firstRowY: rows.length ? rows[0].start / canvas.height : 1
+    };
   }
 
   function mergeSequences(first, second) {
@@ -270,21 +278,38 @@
     return null;
   }
 
+  function bestImageOrder(sequences, days) {
+    const candidates = [
+      { first: sequences[0], second: sequences[1], order: [0, 1] },
+      { first: sequences[1], second: sequences[0], order: [1, 0] }
+    ].map(candidate => ({ ...candidate, merged: mergeSequences(candidate.first.values, candidate.second.values) }))
+      .filter(candidate => candidate.merged)
+      .sort((left, right) => {
+        const leftDistance = Math.abs(left.merged.values.length - days);
+        const rightDistance = Math.abs(right.merged.values.length - days);
+        if (leftDistance !== rightDistance) return leftDistance - rightDistance;
+        const leftPositionScore = left.first.firstRowY - left.second.firstRowY;
+        const rightPositionScore = right.first.firstRowY - right.second.firstRowY;
+        if (leftPositionScore !== rightPositionScore) return leftPositionScore - rightPositionScore;
+        return right.merged.overlap - left.merged.overlap;
+      });
+    return candidates[0] || null;
+  }
+
   async function readImages() {
-    const firstFile = $('firstImage').files[0];
-    const secondFile = $('secondImage').files[0];
-    if (!firstFile || !secondFile) {
-      $('imageStatus').textContent = '前半・後半の画像を1枚ずつ選択してください。';
+    const files = Array.from($('shiftImages').files);
+    if (files.length !== 2) {
+      $('imageStatus').textContent = `画像を2枚選択してください（現在${files.length}枚）。`;
       return;
     }
     $('imageStatus').textContent = '画像を解析しています…';
     try {
-      const [firstImage, secondImage] = await Promise.all([loadImage(firstFile), loadImage(secondFile)]);
-      const first = extractShiftSequence(firstImage);
-      const second = extractShiftSequence(secondImage);
-      const merged = mergeSequences(first, second);
-      if (!merged) throw new Error(`画像の重複部分を確認できませんでした（前半${first.length}件・後半${second.length}件）。`);
+      const images = await Promise.all(files.map(loadImage));
+      const sequences = images.map(extractShiftSequence);
       const days = numberOfDays();
+      const selected = bestImageOrder(sequences, days);
+      if (!selected) throw new Error(`画像の重複部分を確認できませんでした（画像1: ${sequences[0].values.length}件、画像2: ${sequences[1].values.length}件）。`);
+      const { merged, order } = selected;
       entries = Array.from({ length: days }, (_, index) => ({
         day: index + 1,
         kind: merged.values[index] || '未設定',
@@ -292,7 +317,7 @@
       }));
       render();
       const difference = merged.values.length === days ? '' : ` 月の日数は${days}日なので、未設定の日を確認してください。`;
-      $('imageStatus').textContent = `前半${first.length}件、後半${second.length}件、重複${merged.overlap}件を検出し、${merged.values.length}日分へ結合しました。${difference}`;
+      $('imageStatus').textContent = `前半「${files[order[0]].name}」${selected.first.values.length}件、後半「${files[order[1]].name}」${selected.second.values.length}件、重複${merged.overlap}件を検出し、${merged.values.length}日分へ結合しました。${difference}`;
     } catch (error) {
       $('imageStatus').textContent = error.message;
     }
@@ -346,7 +371,7 @@
       lines.push(`DTEND;VALUE=DATE:${dateText(next.year, next.month, next.day)}`);
     }
     lines.push(`SUMMARY:${escapeICS(`勤務：${entry.kind}`)}`);
-    lines.push('DESCRIPTION:ナスカレ「は」列から作成');
+    lines.push('DESCRIPTION:ナスカレ勤務表の2列目から作成');
     lines.push('END:VEVENT');
     return lines;
   }

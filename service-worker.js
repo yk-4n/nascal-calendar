@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nascal-calendar-v1';
+const CACHE_NAME = 'nascal-calendar-v2';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
@@ -25,4 +25,3 @@ self.addEventListener('fetch', event => {
       .catch(() => caches.match(event.request).then(response => response || caches.match('./index.html')))
   );
 });
-
