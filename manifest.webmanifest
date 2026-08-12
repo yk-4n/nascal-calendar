@@ -1,0 +1,15 @@
+{
+  "name": "ナスカレ勤務カレンダー",
+  "short_name": "ナスカレ取込",
+  "description": "ナスカレの勤務表画像から「は」列を読み取り、iOSカレンダー用ICSを作成します。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f7",
+  "theme_color": "#0878d1",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

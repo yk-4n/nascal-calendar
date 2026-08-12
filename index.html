@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0878d1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ナスカレ取込">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>ナスカレ勤務カレンダー</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f5f7; color: #16202a; }
+    main { width: min(920px, calc(100% - 32px)); margin: 32px auto 64px; }
+    header, section { background: white; border: 1px solid #dce2e7; border-radius: 16px; padding: 22px; margin-bottom: 16px; box-shadow: 0 3px 12px #1e2a3610; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin: 0 0 16px; font-size: 19px; }
+    p { line-height: 1.65; }
+    .muted { color: #62707d; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; }
+    label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+    input, select, button { font: inherit; }
+    input, select { width: 100%; border: 1px solid #bcc7d0; border-radius: 9px; padding: 9px 11px; background: white; }
+    button { border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; background: #e8edf1; color: #17212b; font-weight: 600; }
+    button:hover { filter: brightness(.97); }
+    button.primary { background: #0878d1; color: white; padding: 13px 22px; font-size: 16px; }
+    button.secondary { background: #eef2f5; }
+    button.danger { color: #9d2630; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-bottom: 14px; }
+    .toolbar .count { margin-left: auto; color: #53616e; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e4e9ed; padding: 8px 7px; text-align: left; }
+    th { color: #53616e; font-size: 13px; }
+    td:first-child { width: 48px; }
+    td:nth-child(2) { width: 52px; }
+    td:last-child { width: 74px; text-align: center; }
+    tr.weekend td:first-child, tr.weekend td:nth-child(2) { color: #c3283d; }
+    .include { width: 20px; height: 20px; }
+    .status { min-height: 24px; margin-top: 12px; color: #116529; font-weight: 600; }
+    .notice { border-left: 4px solid #df9c18; padding: 10px 14px; background: #fff8e8; border-radius: 6px; }
+    .image-status { min-height: 24px; margin-top: 12px; font-weight: 600; color: #24435d; }
+    footer { color: #687581; text-align: center; font-size: 13px; }
+    @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } main { width: min(100% - 18px, 920px); margin-top: 10px; } header, section { padding: 16px; border-radius: 12px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ナスカレ勤務カレンダー</h1>
+    <p>勤務表を確認・修正して、iOS標準カレンダー用の <strong>.ics</strong> ファイルを書き出します。</p>
+    <p class="muted">MacとiPhoneのSafariで動作します。画像や勤務情報を外部へ送信しません。</p>
+  </header>
+
+  <section>
+    <h2>1. スクリーンショットを読み取る</h2>
+    <div class="grid">
+      <label>前半の画像（1日を含む）<input id="firstImage" type="file" accept="image/*"></label>
+      <label>後半の画像（前半と日付が重なる画像）<input id="secondImage" type="file" accept="image/*"></label>
+    </div>
+    <p class="muted">ナスカレのスクリーンショットを時系列順に選択してください。「は」列の文字色を端末内で判定します。</p>
+    <button id="readImagesButton" type="button">2枚の画像から「は」列を読み取る</button>
+    <div id="imageStatus" class="image-status" role="status"></div>
+  </section>
+
+  <section>
+    <h2>2. 対象年月と勤務時間</h2>
+    <div class="grid">
+      <label>年<input id="year" type="number" min="2020" max="2100" value="2026"></label>
+      <label>月<select id="month"></select></label>
+      <label>日勤 開始<input id="dayStart" type="time" value="08:30"></label>
+      <label>日勤 終了<input id="dayEnd" type="time" value="17:30"></label>
+      <label>夜勤 開始<input id="nightStart" type="time" value="16:30"></label>
+      <label>夜勤 翌日終了<input id="nightEnd" type="time" value="09:00"></label>
+    </div>
+    <p class="notice">勤務時間は画像に記載がないため仮値です。実際の時間へ変更してください。</p>
+  </section>
+
+  <section>
+    <h2>3. 「は」列の勤務</h2>
+    <div class="toolbar">
+      <button id="allButton" type="button">全種類を選択</button>
+      <button id="workButton" type="button">日勤・夜勤のみ</button>
+      <button id="noneButton" type="button">選択解除</button>
+      <button id="resetButton" class="danger" type="button">画像確認済みデータへ戻す</button>
+      <span class="count" id="count"></span>
+    </div>
+    <table>
+      <thead><tr><th>日</th><th>曜</th><th>勤務</th><th>出力</th></tr></thead>
+      <tbody id="schedule"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>4. カレンダーファイルを書き出す</h2>
+    <p>内容を確認後、ボタンを押してください。通常は「ダウンロード」フォルダへ保存されます。</p>
+    <button id="exportButton" class="primary" type="button">ICSファイルを書き出す</button>
+    <div id="status" class="status" role="status"></div>
+    <p class="muted">iPhoneへAirDropしてファイルを開くと、標準カレンダーへ読み込めます。同じファイルを複数回読み込むと予定が重複する可能性があります。</p>
+  </section>
+
+  <footer>初期データ: 2026年8月 ナスカレ「は」列</footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const initialSchedule = [
+    '休み','日勤','日勤','休み','夜勤','明け','休み','休み','休み','休み','休み',
+    '日勤','休み','日勤','夜勤','明け','休み','日勤','日勤','休み','夜勤','明け',
+    '休み','日勤','夜勤','明け','休み','日勤','夜勤','明け','休み'
+  ];
+  const kinds = ['日勤', '夜勤', '明け', '休み', '未設定'];
+  const kindSlug = { '日勤': 'day', '夜勤': 'night', '明け': 'after-night', '休み': 'off' };
+  let entries = initialSchedule.map((kind, index) => ({ day: index + 1, kind, include: true }));
+
+  const $ = id => document.getElementById(id);
+  const monthSelect = $('month');
+  for (let month = 1; month <= 12; month++) {
+    const option = document.createElement('option');
+    option.value = String(month);
+    option.textContent = `${month}月`;
+    option.selected = month === 8;
+    monthSelect.append(option);
+  }
+
+  function numberOfDays() {
+    return new Date(Number($('year').value), Number(monthSelect.value), 0).getDate();
+  }
+
+  function resizeEntries() {
+    const days = numberOfDays();
+    entries = Array.from({ length: days }, (_, index) =>
+      entries[index] || { day: index + 1, kind: '未設定', include: false }
+    );
+    entries.length = days;
+    entries.forEach((entry, index) => { entry.day = index + 1; });
+    render();
+  }
+
+  function weekday(day) {
+    const date = new Date(Number($('year').value), Number(monthSelect.value) - 1, day);
+    return new Intl.DateTimeFormat('ja-JP', { weekday: 'short' }).format(date);
+  }
+
+  function render() {
+    const body = $('schedule');
+    body.replaceChildren();
+    entries.forEach((entry, index) => {
+      const row = document.createElement('tr');
+      const dayOfWeek = weekday(entry.day);
+      if (dayOfWeek === '土' || dayOfWeek === '日') row.className = 'weekend';
+
+      const dayCell = document.createElement('td');
+      dayCell.textContent = String(entry.day);
+      const weekdayCell = document.createElement('td');
+      weekdayCell.textContent = dayOfWeek;
+
+      const kindCell = document.createElement('td');
+      const select = document.createElement('select');
+      select.setAttribute('aria-label', `${entry.day}日の勤務`);
+      kinds.forEach(kind => {
+        const option = document.createElement('option');
+        option.value = kind;
+        option.textContent = kind;
+        option.selected = kind === entry.kind;
+        select.append(option);
+      });
+      select.addEventListener('change', event => {
+        entries[index].kind = event.target.value;
+        if (event.target.value === '未設定') entries[index].include = false;
+        updateCount();
+        render();
+      });
+      kindCell.append(select);
+
+      const includeCell = document.createElement('td');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'include';
+      checkbox.checked = entry.include;
+      checkbox.disabled = entry.kind === '未設定';
+      checkbox.setAttribute('aria-label', `${entry.day}日を出力`);
+      checkbox.addEventListener('change', event => {
+        entries[index].include = event.target.checked;
+        updateCount();
+      });
+      includeCell.append(checkbox);
+      row.append(dayCell, weekdayCell, kindCell, includeCell);
+      body.append(row);
+    });
+    updateCount();
+  }
+
+  function updateCount() {
+    const count = entries.filter(entry => entry.include && entry.kind !== '未設定').length;
+    $('count').textContent = `${count}件を出力`;
+  }
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      const url = URL.createObjectURL(file);
+      image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+      image.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`${file.name}を開けませんでした。`)); };
+      image.src = url;
+    });
+  }
+
+  function colorKind(red, green, blue) {
+    if (red > 205 && green > 45 && green < 150 && blue < 85) return '日勤';
+    if (red > 205 && green < 120 && blue > 65 && blue < 185) return '休み';
+    if (blue > 135 && red < 100 && green < 165) return '夜勤';
+    if (red > 80 && red < 200 && green < 135 && blue > 125) return '明け';
+    return null;
+  }
+
+  function extractShiftSequence(image) {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    const xStart = Math.floor(canvas.width * 0.325);
+    const xEnd = Math.floor(canvas.width * 0.465);
+    const rows = [];
+    let band = null;
+    let emptyLines = 0;
+
+    for (let y = 0; y < canvas.height; y++) {
+      const counts = { '日勤': 0, '夜勤': 0, '明け': 0, '休み': 0 };
+      for (let x = xStart; x < xEnd; x += 2) {
+        const offset = (y * canvas.width + x) * 4;
+        const kind = colorKind(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+        if (kind) counts[kind]++;
+      }
+      const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+      if (total >= 2) {
+        if (!band) band = { start: y, end: y, counts: { '日勤': 0, '夜勤': 0, '明け': 0, '休み': 0 } };
+        band.end = y;
+        Object.keys(counts).forEach(kind => { band.counts[kind] += counts[kind]; });
+        emptyLines = 0;
+      } else if (band) {
+        emptyLines++;
+        if (emptyLines > Math.max(5, Math.round(canvas.height * 0.0025))) {
+          const height = band.end - band.start + 1;
+          if (height > canvas.height * 0.006 && height < canvas.height * 0.035) rows.push(band);
+          band = null;
+          emptyLines = 0;
+        }
+      }
+    }
+    if (band) rows.push(band);
+    return rows.map(row => Object.entries(row.counts).sort((a, b) => b[1] - a[1])[0][0]);
+  }
+
+  function mergeSequences(first, second) {
+    const maximum = Math.min(first.length, second.length);
+    for (let overlap = maximum; overlap >= 1; overlap--) {
+      const left = first.slice(first.length - overlap);
+      const right = second.slice(0, overlap);
+      if (left.every((kind, index) => kind === right[index])) {
+        return { values: first.concat(second.slice(overlap)), overlap };
+      }
+    }
+    return null;
+  }
+
+  async function readImages() {
+    const firstFile = $('firstImage').files[0];
+    const secondFile = $('secondImage').files[0];
+    if (!firstFile || !secondFile) {
+      $('imageStatus').textContent = '前半・後半の画像を1枚ずつ選択してください。';
+      return;
+    }
+    $('imageStatus').textContent = '画像を解析しています…';
+    try {
+      const [firstImage, secondImage] = await Promise.all([loadImage(firstFile), loadImage(secondFile)]);
+      const first = extractShiftSequence(firstImage);
+      const second = extractShiftSequence(secondImage);
+      const merged = mergeSequences(first, second);
+      if (!merged) throw new Error(`画像の重複部分を確認できませんでした（前半${first.length}件・後半${second.length}件）。`);
+      const days = numberOfDays();
+      entries = Array.from({ length: days }, (_, index) => ({
+        day: index + 1,
+        kind: merged.values[index] || '未設定',
+        include: Boolean(merged.values[index])
+      }));
+      render();
+      const difference = merged.values.length === days ? '' : ` 月の日数は${days}日なので、未設定の日を確認してください。`;
+      $('imageStatus').textContent = `前半${first.length}件、後半${second.length}件、重複${merged.overlap}件を検出し、${merged.values.length}日分へ結合しました。${difference}`;
+    } catch (error) {
+      $('imageStatus').textContent = error.message;
+    }
+  }
+
+  function pad(value) { return String(value).padStart(2, '0'); }
+  function dateText(year, month, day) { return `${year}${pad(month)}${pad(day)}`; }
+  function dateTimeText(year, month, day, time) { return `${dateText(year, month, day)}T${time.replace(':', '')}00`; }
+  function nextDate(year, month, day) {
+    const date = new Date(year, month - 1, day + 1);
+    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
+  }
+  function escapeICS(value) {
+    return String(value).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  }
+  function foldLine(line) {
+    const encoder = new TextEncoder();
+    const result = [];
+    let current = '';
+    for (const character of line) {
+      if (encoder.encode(current + character).length > 73) {
+        result.push(current);
+        current = ` ${character}`;
+      } else {
+        current += character;
+      }
+    }
+    result.push(current);
+    return result.join('\r\n');
+  }
+  function utcStamp() {
+    return new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  }
+
+  function eventLines(entry, settings) {
+    const { year, month, dayStart, dayEnd, nightStart, nightEnd, stamp } = settings;
+    const next = nextDate(year, month, entry.day);
+    const lines = [
+      'BEGIN:VEVENT',
+      `UID:nascal-${dateText(year, month, entry.day)}-${kindSlug[entry.kind]}@local`,
+      `DTSTAMP:${stamp}`
+    ];
+    if (entry.kind === '日勤') {
+      lines.push(`DTSTART;TZID=Asia/Tokyo:${dateTimeText(year, month, entry.day, dayStart)}`);
+      lines.push(`DTEND;TZID=Asia/Tokyo:${dateTimeText(year, month, entry.day, dayEnd)}`);
+    } else if (entry.kind === '夜勤') {
+      lines.push(`DTSTART;TZID=Asia/Tokyo:${dateTimeText(year, month, entry.day, nightStart)}`);
+      lines.push(`DTEND;TZID=Asia/Tokyo:${dateTimeText(next.year, next.month, next.day, nightEnd)}`);
+    } else {
+      lines.push(`DTSTART;VALUE=DATE:${dateText(year, month, entry.day)}`);
+      lines.push(`DTEND;VALUE=DATE:${dateText(next.year, next.month, next.day)}`);
+    }
+    lines.push(`SUMMARY:${escapeICS(`勤務：${entry.kind}`)}`);
+    lines.push('DESCRIPTION:ナスカレ「は」列から作成');
+    lines.push('END:VEVENT');
+    return lines;
+  }
+
+  async function exportICS() {
+    const selected = entries.filter(entry => entry.include && entry.kind !== '未設定');
+    if (!selected.length) {
+      $('status').textContent = '出力する勤務を1件以上選択してください。';
+      return;
+    }
+    const settings = {
+      year: Number($('year').value), month: Number(monthSelect.value),
+      dayStart: $('dayStart').value, dayEnd: $('dayEnd').value,
+      nightStart: $('nightStart').value, nightEnd: $('nightEnd').value,
+      stamp: utcStamp()
+    };
+    if (!settings.dayStart || !settings.dayEnd || !settings.nightStart || !settings.nightEnd) {
+      $('status').textContent = '勤務時間をすべて入力してください。';
+      return;
+    }
+    if (settings.dayEnd <= settings.dayStart) {
+      $('status').textContent = '日勤の終了は開始より後にしてください。';
+      return;
+    }
+    const lines = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Nascal Exporter//JP',
+      'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:ナスカレ勤務',
+      'BEGIN:VTIMEZONE', 'TZID:Asia/Tokyo', 'BEGIN:STANDARD',
+      'DTSTART:19700101T000000', 'TZOFFSETFROM:+0900', 'TZOFFSETTO:+0900',
+      'TZNAME:JST', 'END:STANDARD', 'END:VTIMEZONE'
+    ];
+    selected.forEach(entry => lines.push(...eventLines(entry, settings)));
+    lines.push('END:VCALENDAR');
+    const content = `${lines.map(foldLine).join('\r\n')}\r\n`;
+    const filename = `ナスカレ勤務-${settings.year}-${pad(settings.month)}.ics`;
+    const file = new File([content], filename, { type: 'text/calendar;charset=utf-8' });
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS && navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        $('status').textContent = `${selected.length}件のICSファイルを共有しました。`;
+      } catch (error) {
+        $('status').textContent = error.name === 'AbortError' ? '共有をキャンセルしました。' : `共有できませんでした: ${error.message}`;
+      }
+      return;
+    }
+    const blob = file;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    $('status').textContent = `${selected.length}件のICSファイルを書き出しました。`;
+  }
+
+  $('year').addEventListener('change', resizeEntries);
+  monthSelect.addEventListener('change', resizeEntries);
+  $('readImagesButton').addEventListener('click', readImages);
+  $('allButton').addEventListener('click', () => { entries.forEach(e => e.include = e.kind !== '未設定'); render(); });
+  $('workButton').addEventListener('click', () => { entries.forEach(e => e.include = e.kind === '日勤' || e.kind === '夜勤'); render(); });
+  $('noneButton').addEventListener('click', () => { entries.forEach(e => e.include = false); render(); });
+  $('resetButton').addEventListener('click', () => {
+    if (!confirm('年月・勤務時間・勤務表を2026年8月の初期値へ戻しますか？')) return;
+    $('year').value = '2026'; monthSelect.value = '8';
+    $('dayStart').value = '08:30'; $('dayEnd').value = '17:30';
+    $('nightStart').value = '16:30'; $('nightEnd').value = '09:00';
+    entries = initialSchedule.map((kind, index) => ({ day: index + 1, kind, include: true }));
+    render();
+  });
+  $('exportButton').addEventListener('click', exportICS);
+  render();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(error => {
+        console.warn('オフライン機能を有効にできませんでした。', error);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
