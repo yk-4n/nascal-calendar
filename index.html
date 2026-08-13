@@ -34,37 +34,47 @@
     input[type=file]::file-selector-button { border:0; border-radius:9px; padding:9px 13px; margin-right:12px; background:#f9cfe1; color:#98315f; font-weight:700; }
     button { border:1px solid #edc7d8; border-radius:12px; padding:11px 16px; cursor:pointer; background:#fff6fa; color:#704056; font-weight:700; transition:.2s ease; }
     button:hover { transform:translateY(-1px); background:#ffecf4; border-color:#e886b0; box-shadow:0 7px 18px #c94c7d16; }
-    button.primary, #readImagesButton { background:linear-gradient(100deg,#f25d9c,#d94081); color:white; border:0; padding:13px 21px; box-shadow:0 10px 28px #dc4b8738; }
+    button.primary, .read-column-button { background:linear-gradient(100deg,#f25d9c,#d94081); color:white; border:0; padding:13px 21px; box-shadow:0 10px 28px #dc4b8738; }
     button.danger { color:#bd3e73; background:#fff0f6; }
+    .read-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-bottom: 14px; }
     .toolbar .count { margin-left:auto; color:#c53c76; font-size:14px; font-weight:700; }
-    table { width: 100%; border-collapse: collapse; }
+    .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    table { width: 100%; min-width:650px; border-collapse: collapse; }
     th, td { border-bottom:1px solid #f0d8e2; padding:9px 7px; text-align:left; }
     th { color:#9a7184; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
     td:first-child { width: 48px; }
     td:nth-child(2) { width: 52px; }
+    td.preview-cell { width:172px; }
     td:last-child { width: 74px; text-align: center; }
+    .shift-crop { display:block; width:158px; height:58px; object-fit:contain; object-position:left center; border:1px solid #edc7d8; border-radius:8px; background:#fff; }
+    .no-preview { color:#a98696; font-size:12px; }
     tr.weekend td:first-child, tr.weekend td:nth-child(2) { color:#d83f7f; }
     .include { width:20px; height:20px; accent-color:var(--pink); }
     .status { min-height:24px; margin-top:14px; color:#bd3a72; font-weight:700; }
     .notice { border-left:3px solid var(--pink); padding:11px 14px; background:#fff0f6; border-radius:8px; color:#70485b; }
     .image-status { min-height:24px; margin-top:14px; font-weight:700; color:#bd3a72; }
     footer { color:#957083; text-align:center; font-size:13px; }
-    @media (max-width:620px) { .grid{grid-template-columns:1fr} main{width:min(100% - 18px,960px);margin-top:10px} header,section{padding:18px;border-radius:18px} header{padding:34px 22px}.toolbar .count{width:100%;margin:5px 0 0} }
+    @media (max-width:620px) { .grid{grid-template-columns:1fr} main{width:min(100% - 18px,960px);margin-top:10px} header,section{padding:18px;border-radius:18px} header{padding:34px 22px}.toolbar .count{width:100%;margin:5px 0 0} .read-actions{gap:8px}.read-column-button{padding:12px 8px;font-size:14px} th,td{padding:7px 4px} td.preview-cell{width:142px}.shift-crop{width:132px;height:52px} }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <h1><span>ナスカレシフト</span><br>エクスポーター</h1>
-    <p>ナスカレの勤務表スクリーンショットからシフトを読み取り、iOS標準カレンダー用の <strong>.ics</strong> ファイルを書き出します。</p>
+    <div class="eyebrow">Private · On-device · Simple</div>
+    <h1><span>ナスカレ勤務</span><br>カレンダー</h1>
+    <p>勤務表を確認・修正して、iOS標準カレンダー用の <strong>.ics</strong> ファイルを書き出します。</p>
+    <p class="muted">MacとiPhoneのSafariで動作します。画像や勤務情報を外部へ送信しません。</p>
   </header>
 
   <section>
     <h2>1. スクリーンショットを読み取る</h2>
     <label>勤務表の画像を2枚選択<input id="shiftImages" type="file" accept="image/*" multiple></label>
-    <p class="muted">選択順は問いません。画像の重複と位置から前半・後半を自動判定し、勤務表の2列目を端末内で読み取ります。</p>
-    <button id="readImagesButton" type="button">読み取る</button>
+    <p class="muted">選択順は問いません。読み取りたい列を選ぶと、画像の重複と日付から前半・後半を自動判定します。</p>
+    <div class="read-actions">
+      <button id="readFirstColumnButton" class="read-column-button" type="button">1列目を読み取る</button>
+      <button id="readSecondColumnButton" class="read-column-button" type="button">2列目を読み取る</button>
+    </div>
     <div id="imageStatus" class="image-status" role="status"></div>
   </section>
 
@@ -78,30 +88,36 @@
       <label>夜勤 開始<input id="nightStart" type="time" value="16:30"></label>
       <label>夜勤 翌日終了<input id="nightEnd" type="time" value="09:00"></label>
     </div>
-    <!-- <p class="notice">勤務時間は画像に記載がないため仮値です。実際の時間へ変更してください。</p> -->
+    <p class="notice">勤務時間は画像に記載がないため仮値です。実際の時間へ変更してください。</p>
   </section>
 
   <section>
-    <h2>3. シフト読み取り結果</h2>
+    <h2 id="scheduleHeading">3. 2列目の勤務</h2>
+    <p class="muted">「原画像」には日付・曜日と読み取った列を切り抜いて表示します。結果と見比べ、違う場合は勤務欄を修正してください。</p>
     <div class="toolbar">
       <button id="allButton" type="button">全種類を選択</button>
       <button id="workButton" type="button">日勤・夜勤のみ</button>
       <button id="noneButton" type="button">選択解除</button>
-      <button id="resetButton" class="danger" type="button">画像確認済みデータへ戻す</button>
+      <button id="resetButton" class="danger" type="button">初期状態に戻す</button>
       <span class="count" id="count"></span>
     </div>
-    <table>
-      <thead><tr><th>日</th><th>曜</th><th>勤務</th><th>出力</th></tr></thead>
-      <tbody id="schedule"></tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>日</th><th>曜</th><th>勤務</th><th>日付＋原画像</th><th>出力</th></tr></thead>
+        <tbody id="schedule"></tbody>
+      </table>
+    </div>
   </section>
 
   <section>
     <h2>4. カレンダーファイルを書き出す</h2>
-    <p>内容を確認後、ボタンを押してください。通常は「ダウンロード」フォルダへ保存されます。</p>
-    <button id="exportButton" class="primary" type="button">ICSファイルを書き出す</button>
+    <p>iPhoneでは「カレンダーで開く」を押すと、ICSの読み込み画面へ直接進みます。</p>
+    <div class="toolbar">
+      <button id="exportButton" class="primary" type="button">カレンダーで開く</button>
+      <button id="shareICSButton" type="button">ICSを共有・保存</button>
+    </div>
     <div id="status" class="status" role="status"></div>
-    <p class="muted">iPhoneへAirDropしてファイルを開くと、標準カレンダーへ読み込めます。同じファイルを複数回読み込むと予定が重複する可能性があります。</p>
+    <p class="muted">読み込み画面で追加する予定を確認してください。うまく開けない場合は「ICSを共有・保存」を使用できます。同じ内容を複数回追加すると予定が重複する可能性があります。</p>
   </section>
 
   <footer>画像と勤務情報は端末内だけで処理されます</footer>
@@ -113,6 +129,7 @@
 
   const kinds = ['日勤', '夜勤', '明け', '休み', '未設定'];
   const kindSlug = { '日勤': 'day', '夜勤': 'night', '明け': 'after-night', '休み': 'off' };
+  let selectedColumn = 2;
   let entries = Array.from({ length: 31 }, (_, index) => ({ day: index + 1, kind: '未設定', include: false }));
 
   const $ = id => document.getElementById(id);
@@ -175,6 +192,21 @@
       });
       kindCell.append(select);
 
+      const previewCell = document.createElement('td');
+      previewCell.className = 'preview-cell';
+      if (entry.preview) {
+        const preview = document.createElement('img');
+        preview.className = 'shift-crop';
+        preview.src = entry.preview;
+        preview.alt = `${entry.day}日の元画像（${selectedColumn}列目）`;
+        previewCell.append(preview);
+      } else {
+        const empty = document.createElement('span');
+        empty.className = 'no-preview';
+        empty.textContent = '—';
+        previewCell.append(empty);
+      }
+
       const includeCell = document.createElement('td');
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
@@ -187,7 +219,7 @@
         updateCount();
       });
       includeCell.append(checkbox);
-      row.append(dayCell, weekdayCell, kindCell, includeCell);
+      row.append(dayCell, weekdayCell, kindCell, previewCell, includeCell);
       body.append(row);
     });
     updateCount();
@@ -216,15 +248,54 @@
     return null;
   }
 
-  function extractShiftSequence(image) {
+  function median(values) {
+    if (!values.length) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  function dateColor(pixels, width, row, rowPitch) {
+    const yStart = Math.max(0, Math.floor((row.start + row.end) / 2 - rowPitch * 0.32));
+    const yEnd = Math.min(pixels.length / 4 / width, Math.ceil((row.start + row.end) / 2 + rowPitch * 0.32));
+    const xEnd = Math.floor(width * 0.155);
+    let red = 0;
+    let blue = 0;
+    for (let y = yStart; y < yEnd; y += 2) {
+      for (let x = 0; x < xEnd; x += 2) {
+        const offset = (y * width + x) * 4;
+        const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2];
+        if (r > 145 && r > g * 1.45 && r > b * 1.25) red++;
+        if (b > 105 && b > r * 1.25 && b > g * 1.12) blue++;
+      }
+    }
+    if (blue > 5 && blue > red * 1.15) return '土';
+    if (red > 5 && red > blue * 1.15) return '日';
+    return '平日';
+  }
+
+  function rowPreview(source, row, rowPitch, column) {
+    const x = 0;
+    const width = Math.ceil(source.width * (column === 1 ? 0.32 : 0.475));
+    const center = (row.start + row.end) / 2;
+    const y = Math.max(0, Math.floor(center - rowPitch * 0.46));
+    const height = Math.min(source.height - y, Math.ceil(rowPitch * 0.92));
+    const preview = document.createElement('canvas');
+    preview.width = 420;
+    preview.height = Math.max(76, Math.round(preview.width * height / width));
+    preview.getContext('2d').drawImage(source, x, y, width, height, 0, 0, preview.width, preview.height);
+    return preview.toDataURL('image/jpeg', 0.82);
+  }
+
+  function extractShiftSequence(image, column) {
     const canvas = document.createElement('canvas');
     canvas.width = image.naturalWidth;
     canvas.height = image.naturalHeight;
     const context = canvas.getContext('2d', { willReadFrequently: true });
     context.drawImage(image, 0, 0);
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    const xStart = Math.floor(canvas.width * 0.325);
-    const xEnd = Math.floor(canvas.width * 0.465);
+    const xStart = Math.floor(canvas.width * (column === 1 ? 0.175 : 0.325));
+    const xEnd = Math.floor(canvas.width * (column === 1 ? 0.31 : 0.465));
     const rows = [];
     let band = null;
     let emptyLines = 0;
@@ -253,64 +324,113 @@
       }
     }
     if (band) rows.push(band);
+    const centers = rows.map(row => (row.start + row.end) / 2);
+    const distances = centers.slice(1).map((center, index) => center - centers[index]);
+    const rowPitch = median(distances.filter(distance => distance > canvas.height * 0.02 && distance < canvas.height * 0.08)) || canvas.height * 0.044;
+    const detailedRows = rows.map(row => {
+      const ranking = Object.entries(row.counts).sort((a, b) => b[1] - a[1]);
+      return {
+        kind: ranking[0][0],
+        confidence: ranking[0][1] / Math.max(1, ranking.reduce((sum, item) => sum + item[1], 0)),
+        dateColor: dateColor(pixels, canvas.width, row, rowPitch),
+        preview: rowPreview(canvas, row, rowPitch, column)
+      };
+    });
     return {
-      values: rows.map(row => Object.entries(row.counts).sort((a, b) => b[1] - a[1])[0][0]),
-      firstRowY: rows.length ? rows[0].start / canvas.height : 1
+      rows: detailedRows,
+      values: detailedRows.map(row => row.kind),
+      firstRowY: rows.length ? rows[0].start / canvas.height : 1,
+      lastRowY: rows.length ? rows[rows.length - 1].end / canvas.height : 0
     };
   }
 
-  function mergeSequences(first, second) {
-    const maximum = Math.min(first.length, second.length);
-    for (let overlap = maximum; overlap >= 1; overlap--) {
-      const left = first.slice(first.length - overlap);
-      const right = second.slice(0, overlap);
-      if (left.every((kind, index) => kind === right[index])) {
-        return { values: first.concat(second.slice(overlap)), overlap };
+  function weekdayAlignmentScore(sequence, startDay) {
+    let score = 0;
+    sequence.rows.forEach((row, index) => {
+      const date = new Date(Number($('year').value), Number(monthSelect.value) - 1, startDay + index);
+      const expected = date.getDay() === 6 ? '土' : date.getDay() === 0 ? '日' : '平日';
+      if (row.dateColor === expected) score += expected === '平日' ? 1 : 5;
+      else if (expected !== '平日') score -= 5;
+      else if (row.dateColor !== '平日') score -= 2;
+    });
+    if (startDay === 1) score += sequence.firstRowY * 12;
+    return score;
+  }
+
+  function placeImagesByDate(sequences, days) {
+    let best = null;
+    for (let firstStart = 1; firstStart <= days - sequences[0].rows.length + 1; firstStart++) {
+      for (let secondStart = 1; secondStart <= days - sequences[1].rows.length + 1; secondStart++) {
+        const placements = [
+          { sequence: sequences[0], start: firstStart },
+          { sequence: sequences[1], start: secondStart }
+        ];
+        const occupied = new Set();
+        let score = weekdayAlignmentScore(sequences[0], firstStart) + weekdayAlignmentScore(sequences[1], secondStart);
+        let overlap = 0;
+        let conflicts = 0;
+        const firstByDay = new Map();
+        sequences[0].rows.forEach((row, index) => firstByDay.set(firstStart + index, row));
+        placements.forEach(placement => placement.sequence.rows.forEach((row, index) => occupied.add(placement.start + index)));
+        sequences[1].rows.forEach((row, index) => {
+          const previous = firstByDay.get(secondStart + index);
+          if (!previous) return;
+          overlap++;
+          if (previous.kind === row.kind) score += 8;
+          else { score -= 14; conflicts++; }
+        });
+        score += occupied.size * 4;
+        score -= (days - occupied.size) * 4;
+        if (Math.min(...occupied) === 1) score += 7;
+        if (Math.max(...occupied) === days) score += 7;
+        if (overlap === 0) score -= 10;
+        if (!best || score > best.score) best = { placements, score, overlap, conflicts, coverage: occupied.size };
       }
     }
-    return null;
+    return best;
   }
 
-  function bestImageOrder(sequences, days) {
-    const candidates = [
-      { first: sequences[0], second: sequences[1], order: [0, 1] },
-      { first: sequences[1], second: sequences[0], order: [1, 0] }
-    ].map(candidate => ({ ...candidate, merged: mergeSequences(candidate.first.values, candidate.second.values) }))
-      .filter(candidate => candidate.merged)
-      .sort((left, right) => {
-        const leftDistance = Math.abs(left.merged.values.length - days);
-        const rightDistance = Math.abs(right.merged.values.length - days);
-        if (leftDistance !== rightDistance) return leftDistance - rightDistance;
-        const leftPositionScore = left.first.firstRowY - left.second.firstRowY;
-        const rightPositionScore = right.first.firstRowY - right.second.firstRowY;
-        if (leftPositionScore !== rightPositionScore) return leftPositionScore - rightPositionScore;
-        return right.merged.overlap - left.merged.overlap;
-      });
-    return candidates[0] || null;
-  }
-
-  async function readImages() {
+  async function readImages(column) {
     const files = Array.from($('shiftImages').files);
     if (files.length !== 2) {
       $('imageStatus').textContent = `画像を2枚選択してください（現在${files.length}枚）。`;
       return;
     }
-    $('imageStatus').textContent = '画像を解析しています…';
+    $('imageStatus').textContent = `${column}列目を解析しています…`;
     try {
       const images = await Promise.all(files.map(loadImage));
-      const sequences = images.map(extractShiftSequence);
+      const sequences = images.map(image => extractShiftSequence(image, column));
       const days = numberOfDays();
-      const selected = bestImageOrder(sequences, days);
-      if (!selected) throw new Error(`画像の重複部分を確認できませんでした（画像1: ${sequences[0].values.length}件、画像2: ${sequences[1].values.length}件）。`);
-      const { merged, order } = selected;
-      entries = Array.from({ length: days }, (_, index) => ({
-        day: index + 1,
-        kind: merged.values[index] || '未設定',
-        include: Boolean(merged.values[index])
-      }));
+      if (sequences.some(sequence => sequence.rows.length === 0)) {
+        throw new Error(`勤務行を検出できない画像があります（画像1: ${sequences[0].rows.length}件、画像2: ${sequences[1].rows.length}件）。`);
+      }
+      const selected = placeImagesByDate(sequences, days);
+      if (!selected) throw new Error('画像の日付位置を判断できませんでした。');
+      entries = Array.from({ length: days }, (_, index) => ({ day: index + 1, kind: '未設定', include: false }));
+      selected.placements.forEach((placement, sourceIndex) => {
+        placement.sequence.rows.forEach((row, rowIndex) => {
+          const entryIndex = placement.start + rowIndex - 1;
+          const current = entries[entryIndex];
+          if (current.kind === '未設定' || row.confidence > (current.confidence || 0)) {
+            entries[entryIndex] = {
+              day: entryIndex + 1,
+              kind: row.kind,
+              include: true,
+              preview: row.preview,
+              confidence: row.confidence,
+              sourceIndex
+            };
+          }
+        });
+      });
+      selectedColumn = column;
+      $('scheduleHeading').textContent = `3. ${column}列目の勤務`;
       render();
-      const difference = merged.values.length === days ? '' : ` 月の日数は${days}日なので、未設定の日を確認してください。`;
-      $('imageStatus').textContent = `前半「${files[order[0]].name}」${selected.first.values.length}件、後半「${files[order[1]].name}」${selected.second.values.length}件、重複${merged.overlap}件を検出し、${merged.values.length}日分へ結合しました。${difference}`;
+      const placementsByDate = selected.placements.map((placement, index) => ({ ...placement, file: files[index] })).sort((a, b) => a.start - b.start);
+      const ranges = placementsByDate.map(item => `「${item.file.name}」=${item.start}〜${item.start + item.sequence.rows.length - 1}日`).join('、');
+      const warning = selected.coverage === days ? '' : ` 未設定が${days - selected.coverage}日あります。`;
+      const conflict = selected.conflicts ? ` 重複部分で${selected.conflicts}件の不一致があります。原画像と見比べて修正してください。` : '';
+      $('imageStatus').textContent = `${column}列目を読み取り、日付・曜日色・重複勤務から画像位置を判定しました。${ranges}、重複${selected.overlap}日。${warning}${conflict}`;
     } catch (error) {
       $('imageStatus').textContent = error.message;
     }
@@ -363,13 +483,13 @@
       lines.push(`DTSTART;VALUE=DATE:${dateText(year, month, entry.day)}`);
       lines.push(`DTEND;VALUE=DATE:${dateText(next.year, next.month, next.day)}`);
     }
-    lines.push(`SUMMARY:${escapeICS(`${entry.kind}`)}`);
-    lines.push('DESCRIPTION:ナスカレ勤務表の2列目から作成');
+    lines.push(`SUMMARY:${escapeICS(entry.kind)}`);
+    lines.push(`DESCRIPTION:ナスカレ勤務表の${selectedColumn}列目から作成`);
     lines.push('END:VEVENT');
     return lines;
   }
 
-  async function exportICS() {
+  async function exportICS(mode = 'open') {
     const selected = entries.filter(entry => entry.include && entry.kind !== '未設定');
     if (!selected.length) {
       $('status').textContent = '出力する勤務を1件以上選択してください。';
@@ -403,9 +523,38 @@
     const file = new File([content], filename, { type: 'text/calendar;charset=utf-8' });
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (mode === 'open' && isIOS && navigator.serviceWorker?.controller) {
+      try {
+        const importURL = new URL('./nascal-import.ics', location.href);
+        await caches.open('nascal-generated-files').then(cache => cache.put(importURL.href, new Response(content, {
+          headers: {
+            'Content-Type': 'text/calendar; charset=utf-8',
+            'Content-Disposition': 'inline; filename="nascal-import.ics"',
+            'Cache-Control': 'no-store'
+          }
+        })));
+        $('status').textContent = `${selected.length}件をカレンダーで開きます…`;
+        location.assign(importURL.href);
+        return;
+      } catch (error) {
+        console.warn('ICSを直接開けなかったため共有へ切り替えます。', error);
+      }
+    }
+
+    if (mode === 'open' && isIOS) {
+      const inlineURL = URL.createObjectURL(file);
+      const opened = window.open(inlineURL, '_blank');
+      setTimeout(() => URL.revokeObjectURL(inlineURL), 60000);
+      if (opened) {
+        $('status').textContent = `${selected.length}件をカレンダーで開きます…`;
+        return;
+      }
+    }
+
     if (isIOS && navigator.share && navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: filename });
+        await navigator.share({ files: [file] });
         $('status').textContent = `${selected.length}件のICSファイルを共有しました。`;
       } catch (error) {
         $('status').textContent = error.name === 'AbortError' ? '共有をキャンセルしました。' : `共有できませんでした: ${error.message}`;
@@ -426,7 +575,8 @@
 
   $('year').addEventListener('change', resizeEntries);
   monthSelect.addEventListener('change', resizeEntries);
-  $('readImagesButton').addEventListener('click', readImages);
+  $('readFirstColumnButton').addEventListener('click', () => readImages(1));
+  $('readSecondColumnButton').addEventListener('click', () => readImages(2));
   $('allButton').addEventListener('click', () => { entries.forEach(e => e.include = e.kind !== '未設定'); render(); });
   $('workButton').addEventListener('click', () => { entries.forEach(e => e.include = e.kind === '日勤' || e.kind === '夜勤'); render(); });
   $('noneButton').addEventListener('click', () => { entries.forEach(e => e.include = false); render(); });
@@ -435,10 +585,13 @@
     $('year').value = '2026'; monthSelect.value = '8';
     $('dayStart').value = '08:30'; $('dayEnd').value = '17:30';
     $('nightStart').value = '16:30'; $('nightEnd').value = '09:00';
+    selectedColumn = 2;
+    $('scheduleHeading').textContent = '3. 2列目の勤務';
     entries = Array.from({ length: numberOfDays() }, (_, index) => ({ day: index + 1, kind: '未設定', include: false }));
     render();
   });
-  $('exportButton').addEventListener('click', exportICS);
+  $('exportButton').addEventListener('click', () => exportICS('open'));
+  $('shareICSButton').addEventListener('click', () => exportICS('share'));
   render();
 
   if ('serviceWorker' in navigator) {

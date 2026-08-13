@@ -1,7 +1,7 @@
 {
   "name": "ナスカレ勤務カレンダー",
   "short_name": "ナスカレ取込",
-  "description": "ナスカレの勤務表画像から2列目を読み取り、iOSカレンダー用ICSを作成します。",
+  "description": "ナスカレの勤務表画像から1列目または2列目を読み取り、iOSカレンダー用ICSを作成します。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
