@@ -466,9 +466,10 @@
   async function recognizeDates(images, sequences, days) {
     if (!window.Tesseract) throw new Error('日付OCRを読み込めませんでした。ページを再読み込みしてください。');
     const worker = await Tesseract.createWorker('eng', 1, {
-      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js',
+      workerPath: new URL('./ocr-worker.min.js', location.href).href,
       corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0',
       langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',
+      workerBlobURL: false,
       logger: message => {
         if (message.status === 'recognizing text') $('imageStatus').textContent = `日付をOCRしています… ${Math.round(message.progress * 100)}%`;
       }
@@ -476,7 +477,11 @@
     try {
       await worker.setParameters({ tessedit_pageseg_mode: '11', tessedit_char_whitelist: '0123456789' });
       for (let index = 0; index < images.length; index++) {
-        const result = await worker.recognize(images[index], {}, { text: false, tsv: true });
+        const ocrCanvas = document.createElement('canvas');
+        ocrCanvas.width = images[index].naturalWidth;
+        ocrCanvas.height = images[index].naturalHeight;
+        ocrCanvas.getContext('2d').drawImage(images[index], 0, 0);
+        const result = await worker.recognize(ocrCanvas, {}, { text: false, tsv: true });
         attachRecognizedDates(sequences[index], parseTSVWords(result.data.tsv, images[index].naturalWidth), days);
       }
     } finally {
