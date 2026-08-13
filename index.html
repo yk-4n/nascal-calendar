@@ -29,6 +29,7 @@
     label { display:grid; gap:7px; color:#674255; font-size:13px; font-weight:700; }
     input, select, button { font: inherit; }
     input, select { width:100%; border:1px solid #e8bfd1; border-radius:12px; padding:11px 13px; background:#fffafd; color:var(--text); outline:none; }
+    input[type="time"] { min-width:0; max-width:100%; }
     input:focus, select:focus { border-color:#ed5b99; box-shadow:0 0 0 3px #ed4d9126; background:#fff; }
     input[type=file] { padding:18px; border:1px dashed #ed6ca4; background:#fff1f7; }
     input[type=file]::file-selector-button { border:0; border-radius:9px; padding:9px 13px; margin-right:12px; background:#f9cfe1; color:#98315f; font-weight:700; }
@@ -59,9 +60,11 @@
       main { width:min(100% - 18px,960px); margin-top:10px; }
       header, section { padding:18px; border-radius:18px; }
       header { padding:34px 22px; }
-      .grid { grid-template-columns:minmax(0,1fr); width:100%; }
-      .grid > label { min-width:0; width:100%; overflow:hidden; }
-      .grid input, .grid select { display:block; min-width:0; max-width:100%; width:100%; }
+      .grid { grid-template-columns:minmax(0,1fr); width:100%; max-width:100%; overflow:hidden; }
+      .grid > label { display:block; min-width:0; max-width:100%; width:100%; overflow:hidden; }
+      .grid > label > input, .grid > label > select { display:block; box-sizing:border-box; min-width:0; max-width:none; width:100%; margin-top:7px; }
+      .grid input[type="time"] { -webkit-appearance:none; appearance:none; width:-webkit-fill-available; inline-size:100%; min-inline-size:0; max-inline-size:100%; }
+      .grid input[type="time"]::-webkit-date-and-time-value { display:block; min-width:0; width:100%; margin:0; text-align:left; }
       .toolbar .count { width:100%; margin:5px 0 0; }
       .read-actions { gap:8px; }
       .read-column-button { padding:12px 8px; font-size:14px; }

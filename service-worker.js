@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nascal-calendar-v9';
+const CACHE_NAME = 'nascal-calendar-v10';
 const GENERATED_CACHE = 'nascal-generated-files';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
