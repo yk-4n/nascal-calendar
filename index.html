@@ -55,7 +55,29 @@
     .notice { border-left:3px solid var(--pink); padding:11px 14px; background:#fff0f6; border-radius:8px; color:#70485b; }
     .image-status { min-height:24px; margin-top:14px; font-weight:700; color:#bd3a72; }
     footer { color:#957083; text-align:center; font-size:13px; }
-    @media (max-width:620px) { .grid{grid-template-columns:1fr} main{width:min(100% - 18px,960px);margin-top:10px} header,section{padding:18px;border-radius:18px} header{padding:34px 22px}.toolbar .count{width:100%;margin:5px 0 0} .read-actions{gap:8px}.read-column-button{padding:12px 8px;font-size:14px} th,td{padding:7px 4px} td.preview-cell{width:142px}.shift-crop{width:132px;height:52px} }
+    @media (max-width:620px) {
+      main { width:min(100% - 18px,960px); margin-top:10px; }
+      header, section { padding:18px; border-radius:18px; }
+      header { padding:34px 22px; }
+      .grid { grid-template-columns:minmax(0,1fr); width:100%; }
+      .grid > label { min-width:0; width:100%; overflow:hidden; }
+      .grid input, .grid select { display:block; min-width:0; max-width:100%; width:100%; }
+      .toolbar .count { width:100%; margin:5px 0 0; }
+      .read-actions { gap:8px; }
+      .read-column-button { padding:12px 8px; font-size:14px; }
+      .table-wrap { width:100%; overflow-x:hidden; }
+      table { width:100%; min-width:0; table-layout:fixed; }
+      th, td { padding:6px 3px; }
+      th { font-size:10px; letter-spacing:0; }
+      th:nth-child(1), td:nth-child(1) { width:28px; }
+      th:nth-child(2), td:nth-child(2) { width:27px; }
+      th:nth-child(3), td:nth-child(3) { width:78px; }
+      th:nth-child(5), td:nth-child(5) { width:38px; }
+      td.preview-cell { width:auto; }
+      td:nth-child(3) select { min-width:0; padding:8px 3px; border-radius:8px; font-size:13px; }
+      .shift-crop { width:100%; height:auto; min-height:34px; object-fit:contain; }
+      .include { width:18px; height:18px; }
+    }
   </style>
 </head>
 <body>
@@ -103,7 +125,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>日</th><th>曜</th><th>勤務</th><th>日付＋原画像</th><th>出力</th></tr></thead>
+        <thead><tr><th>日</th><th>曜</th><th>勤務</th><th>原画像</th><th>出力</th></tr></thead>
         <tbody id="schedule"></tbody>
       </table>
     </div>
