@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#160b22">
+  <meta name="theme-color" content="#fff1f7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="ナスカレ取込">
@@ -11,62 +11,60 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>ナスカレ勤務カレンダー</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; --pink:#ff4fa3; --pink-soft:#ff8bc1; --panel:#24142fdd; --line:#ffffff18; --text:#fff7fb; --muted:#cbbdce; }
+    :root { color-scheme: light; font-family: Inter, -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; --pink:#ed4d91; --pink-deep:#c93676; --pink-soft:#ff8fbd; --panel:#fffffff2; --line:#efc9da; --text:#482538; --muted:#876777; }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 12% 5%, #91295c55 0, transparent 32%), radial-gradient(circle at 90% 18%, #db367644 0, transparent 30%), linear-gradient(145deg, #12091c, #221029 55%, #140a1d); color: var(--text); }
-    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.16; background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px); background-size:64px 64px; mask-image:linear-gradient(to bottom,#000,transparent 68%); }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 8% 3%, #ffc3dcaa 0, transparent 30%), radial-gradient(circle at 94% 18%, #ffd8e8cc 0, transparent 32%), linear-gradient(145deg, #fff9fc, #fff0f6 55%, #fff8fb); color: var(--text); }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.38; background-image:linear-gradient(#eeb7ce55 1px,transparent 1px),linear-gradient(90deg,#eeb7ce55 1px,transparent 1px); background-size:64px 64px; mask-image:linear-gradient(to bottom,#000,transparent 68%); }
     main { position:relative; width:min(960px, calc(100% - 32px)); margin:40px auto 72px; }
-    header, section { background:linear-gradient(145deg,#2b1838e8,#1d1129dc); border:1px solid var(--line); border-radius:24px; padding:26px; margin-bottom:18px; box-shadow:0 20px 70px #07030c66, inset 0 1px #ffffff12; backdrop-filter:blur(18px); }
+    header, section { background:linear-gradient(145deg,#fffffff7,#fff8fbe8); border:1px solid var(--line); border-radius:24px; padding:26px; margin-bottom:18px; box-shadow:0 18px 55px #bd47731c, inset 0 1px #fff; backdrop-filter:blur(18px); }
     header { padding:48px 34px; overflow:hidden; position:relative; }
-    header::after { content:""; position:absolute; width:260px; height:260px; right:-80px; top:-120px; border-radius:50%; background:#ff3d9a; filter:blur(60px); opacity:.3; }
-    .eyebrow { color:var(--pink-soft); text-transform:uppercase; letter-spacing:.16em; font-size:12px; font-weight:800; }
+    header::after { content:""; position:absolute; width:280px; height:280px; right:-80px; top:-125px; border-radius:50%; background:#ff9fc8; filter:blur(55px); opacity:.42; }
+    .eyebrow { color:var(--pink-deep); text-transform:uppercase; letter-spacing:.16em; font-size:12px; font-weight:800; }
     h1 { position:relative; z-index:1; margin:8px 0 10px; font-size:clamp(32px,6vw,54px); letter-spacing:-.045em; line-height:1.05; }
-    h1 span { background:linear-gradient(90deg,#fff 15%,#ff8bc1 65%,#ff4fa3); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    h1 span { background:linear-gradient(90deg,#b72f69 10%,#ed4d91 60%,#ff85b7); -webkit-background-clip:text; background-clip:text; color:transparent; }
     h2 { margin:0 0 18px; font-size:20px; letter-spacing:-.01em; }
     p { line-height: 1.65; }
     .muted { color:var(--muted); font-size:14px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; }
-    label { display:grid; gap:7px; color:#eadfea; font-size:13px; font-weight:700; }
+    label { display:grid; gap:7px; color:#674255; font-size:13px; font-weight:700; }
     input, select, button { font: inherit; }
-    input, select { width:100%; border:1px solid #ffffff20; border-radius:12px; padding:11px 13px; background:#100918aa; color:var(--text); outline:none; }
-    input:focus, select:focus { border-color:#ff69ad; box-shadow:0 0 0 3px #ff4fa326; }
-    input[type=file] { padding:18px; border:1px dashed #ff7ab799; background:#ff4fa30b; }
-    input[type=file]::file-selector-button { border:0; border-radius:9px; padding:9px 13px; margin-right:12px; background:#ff4fa326; color:#ffd9eb; font-weight:700; }
-    button { border:1px solid #ffffff16; border-radius:12px; padding:11px 16px; cursor:pointer; background:#ffffff0d; color:#fceff6; font-weight:700; transition:.2s ease; }
-    button:hover { transform:translateY(-1px); background:#ffffff16; border-color:#ff75b55c; }
-    button.primary, #readImagesButton { background:linear-gradient(100deg,#ff318c,#dc3b9b); color:white; border:0; padding:13px 21px; box-shadow:0 10px 30px #e82f8c35; }
-    button.danger { color:#ff9fc9; }
+    input, select { width:100%; border:1px solid #e8bfd1; border-radius:12px; padding:11px 13px; background:#fffafd; color:var(--text); outline:none; }
+    input:focus, select:focus { border-color:#ed5b99; box-shadow:0 0 0 3px #ed4d9126; background:#fff; }
+    input[type=file] { padding:18px; border:1px dashed #ed6ca4; background:#fff1f7; }
+    input[type=file]::file-selector-button { border:0; border-radius:9px; padding:9px 13px; margin-right:12px; background:#f9cfe1; color:#98315f; font-weight:700; }
+    button { border:1px solid #edc7d8; border-radius:12px; padding:11px 16px; cursor:pointer; background:#fff6fa; color:#704056; font-weight:700; transition:.2s ease; }
+    button:hover { transform:translateY(-1px); background:#ffecf4; border-color:#e886b0; box-shadow:0 7px 18px #c94c7d16; }
+    button.primary, #readImagesButton { background:linear-gradient(100deg,#f25d9c,#d94081); color:white; border:0; padding:13px 21px; box-shadow:0 10px 28px #dc4b8738; }
+    button.danger { color:#bd3e73; background:#fff0f6; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-bottom: 14px; }
-    .toolbar .count { margin-left:auto; color:#ff9fc9; font-size:14px; font-weight:700; }
+    .toolbar .count { margin-left:auto; color:#c53c76; font-size:14px; font-weight:700; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom:1px solid #ffffff10; padding:9px 7px; text-align:left; }
-    th { color:#a99aad; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+    th, td { border-bottom:1px solid #f0d8e2; padding:9px 7px; text-align:left; }
+    th { color:#9a7184; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
     td:first-child { width: 48px; }
     td:nth-child(2) { width: 52px; }
     td:last-child { width: 74px; text-align: center; }
-    tr.weekend td:first-child, tr.weekend td:nth-child(2) { color:#ff72ae; }
+    tr.weekend td:first-child, tr.weekend td:nth-child(2) { color:#d83f7f; }
     .include { width:20px; height:20px; accent-color:var(--pink); }
-    .status { min-height:24px; margin-top:14px; color:#ffaad0; font-weight:700; }
-    .notice { border-left:3px solid var(--pink); padding:11px 14px; background:#ff4fa310; border-radius:8px; color:#e8dce8; }
-    .image-status { min-height:24px; margin-top:14px; font-weight:700; color:#ffabd1; }
-    footer { color:#928397; text-align:center; font-size:13px; }
+    .status { min-height:24px; margin-top:14px; color:#bd3a72; font-weight:700; }
+    .notice { border-left:3px solid var(--pink); padding:11px 14px; background:#fff0f6; border-radius:8px; color:#70485b; }
+    .image-status { min-height:24px; margin-top:14px; font-weight:700; color:#bd3a72; }
+    footer { color:#957083; text-align:center; font-size:13px; }
     @media (max-width:620px) { .grid{grid-template-columns:1fr} main{width:min(100% - 18px,960px);margin-top:10px} header,section{padding:18px;border-radius:18px} header{padding:34px 22px}.toolbar .count{width:100%;margin:5px 0 0} }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <div class="eyebrow">Private · On-device · Simple</div>
-    <h1><span>ナスカレ勤務</span><br>カレンダー</h1>
-    <p>勤務表を確認・修正して、iOS標準カレンダー用の <strong>.ics</strong> ファイルを書き出します。</p>
-    <p class="muted">MacとiPhoneのSafariで動作します。画像や勤務情報を外部へ送信しません。</p>
+    <h1><span>ナスカレシフト</span><br>エクスポーター</h1>
+    <p>ナスカレの勤務表スクリーンショットからシフトを読み取り、iOS標準カレンダー用の <strong>.ics</strong> ファイルを書き出します。</p>
   </header>
 
   <section>
     <h2>1. スクリーンショットを読み取る</h2>
     <label>勤務表の画像を2枚選択<input id="shiftImages" type="file" accept="image/*" multiple></label>
     <p class="muted">選択順は問いません。画像の重複と位置から前半・後半を自動判定し、勤務表の2列目を端末内で読み取ります。</p>
-    <button id="readImagesButton" type="button">2枚の画像から2列目を読み取る</button>
+    <button id="readImagesButton" type="button">読み取る</button>
     <div id="imageStatus" class="image-status" role="status"></div>
   </section>
 
@@ -80,11 +78,11 @@
       <label>夜勤 開始<input id="nightStart" type="time" value="16:30"></label>
       <label>夜勤 翌日終了<input id="nightEnd" type="time" value="09:00"></label>
     </div>
-    <p class="notice">勤務時間は画像に記載がないため仮値です。実際の時間へ変更してください。</p>
+    <!-- <p class="notice">勤務時間は画像に記載がないため仮値です。実際の時間へ変更してください。</p> -->
   </section>
 
   <section>
-    <h2>3. 2列目の勤務</h2>
+    <h2>3. シフト読み取り結果</h2>
     <div class="toolbar">
       <button id="allButton" type="button">全種類を選択</button>
       <button id="workButton" type="button">日勤・夜勤のみ</button>
@@ -106,21 +104,16 @@
     <p class="muted">iPhoneへAirDropしてファイルを開くと、標準カレンダーへ読み込めます。同じファイルを複数回読み込むと予定が重複する可能性があります。</p>
   </section>
 
-  <footer>初期データ: 2026年8月 ナスカレ勤務表 2列目</footer>
+  <footer>画像と勤務情報は端末内だけで処理されます</footer>
 </main>
 
 <script>
 (() => {
   'use strict';
 
-  const initialSchedule = [
-    '休み','日勤','日勤','休み','夜勤','明け','休み','休み','休み','休み','休み',
-    '日勤','休み','日勤','夜勤','明け','休み','日勤','日勤','休み','夜勤','明け',
-    '休み','日勤','夜勤','明け','休み','日勤','夜勤','明け','休み'
-  ];
   const kinds = ['日勤', '夜勤', '明け', '休み', '未設定'];
   const kindSlug = { '日勤': 'day', '夜勤': 'night', '明け': 'after-night', '休み': 'off' };
-  let entries = initialSchedule.map((kind, index) => ({ day: index + 1, kind, include: true }));
+  let entries = Array.from({ length: 31 }, (_, index) => ({ day: index + 1, kind: '未設定', include: false }));
 
   const $ = id => document.getElementById(id);
   const monthSelect = $('month');
@@ -370,7 +363,7 @@
       lines.push(`DTSTART;VALUE=DATE:${dateText(year, month, entry.day)}`);
       lines.push(`DTEND;VALUE=DATE:${dateText(next.year, next.month, next.day)}`);
     }
-    lines.push(`SUMMARY:${escapeICS(`勤務：${entry.kind}`)}`);
+    lines.push(`SUMMARY:${escapeICS(`${entry.kind}`)}`);
     lines.push('DESCRIPTION:ナスカレ勤務表の2列目から作成');
     lines.push('END:VEVENT');
     return lines;
@@ -438,11 +431,11 @@
   $('workButton').addEventListener('click', () => { entries.forEach(e => e.include = e.kind === '日勤' || e.kind === '夜勤'); render(); });
   $('noneButton').addEventListener('click', () => { entries.forEach(e => e.include = false); render(); });
   $('resetButton').addEventListener('click', () => {
-    if (!confirm('年月・勤務時間・勤務表を2026年8月の初期値へ戻しますか？')) return;
+    if (!confirm('年月・勤務時間・勤務表を初期状態へ戻しますか？')) return;
     $('year').value = '2026'; monthSelect.value = '8';
     $('dayStart').value = '08:30'; $('dayEnd').value = '17:30';
     $('nightStart').value = '16:30'; $('nightEnd').value = '09:00';
-    entries = initialSchedule.map((kind, index) => ({ day: index + 1, kind, include: true }));
+    entries = Array.from({ length: numberOfDays() }, (_, index) => ({ day: index + 1, kind: '未設定', include: false }));
     render();
   });
   $('exportButton').addEventListener('click', exportICS);
