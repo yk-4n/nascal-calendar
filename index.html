@@ -148,6 +148,7 @@
   <footer>画像と勤務情報は端末内だけで処理されます</footer>
 </main>
 
+<script src="./ocr/tesseract.min.js"></script>
 <script>
 (() => {
   'use strict';
@@ -312,6 +313,51 @@
     return preview.toDataURL('image/jpeg', 0.82);
   }
 
+  function normalizeTableRows(rows, imageHeight) {
+    if (rows.length < 2) return { rows, rowPitch: imageHeight * 0.044 };
+    const centers = rows.map(row => (row.start + row.end) / 2);
+    const distances = centers.slice(1).map((center, index) => center - centers[index]);
+    const rowPitch = median(distances.filter(distance => distance > imageHeight * 0.025 && distance < imageHeight * 0.06)) || imageHeight * 0.044;
+    const tolerance = rowPitch * 0.28;
+    let bestGroup = [];
+
+    rows.forEach((anchor, anchorIndex) => {
+      const anchorCenter = centers[anchorIndex];
+      const group = rows.filter((row, index) => {
+        const steps = Math.round((centers[index] - anchorCenter) / rowPitch);
+        return Math.abs(centers[index] - (anchorCenter + steps * rowPitch)) <= tolerance;
+      });
+      let segment = [];
+      group.forEach(row => {
+        const center = (row.start + row.end) / 2;
+        const previousCenter = segment.length ? (segment[segment.length - 1].start + segment[segment.length - 1].end) / 2 : null;
+        if (previousCenter !== null && center - previousCenter > rowPitch * 2.5) segment = [];
+        segment.push(row);
+        if (segment.length > bestGroup.length) bestGroup = [...segment];
+      });
+    });
+
+    const groupCenters = bestGroup.map(row => (row.start + row.end) / 2);
+    const normalized = [];
+    bestGroup.forEach((row, index) => {
+      if (index) {
+        const gap = groupCenters[index] - groupCenters[index - 1];
+        const missing = Math.max(0, Math.round(gap / rowPitch) - 1);
+        for (let offset = 1; offset <= missing; offset++) {
+          const center = groupCenters[index - 1] + rowPitch * offset;
+          normalized.push({
+            start: center - rowPitch * 0.18,
+            end: center + rowPitch * 0.18,
+            counts: { '日勤': 0, '夜勤': 0, '明け': 0, '休み': 0 },
+            missing: true
+          });
+        }
+      }
+      normalized.push(row);
+    });
+    return { rows: normalized, rowPitch };
+  }
+
   function extractShiftSequence(image, column) {
     const canvas = document.createElement('canvas');
     canvas.width = image.naturalWidth;
@@ -349,29 +395,100 @@
       }
     }
     if (band) rows.push(band);
-    const centers = rows.map(row => (row.start + row.end) / 2);
-    const distances = centers.slice(1).map((center, index) => center - centers[index]);
-    const rowPitch = median(distances.filter(distance => distance > canvas.height * 0.02 && distance < canvas.height * 0.08)) || canvas.height * 0.044;
-    const detailedRows = rows.map(row => {
+    const normalized = normalizeTableRows(rows, canvas.height);
+    const tableRows = normalized.rows;
+    const rowPitch = normalized.rowPitch;
+    const detailedRows = tableRows.map(row => {
       const ranking = Object.entries(row.counts).sort((a, b) => b[1] - a[1]);
       return {
-        kind: ranking[0][0],
-        confidence: ranking[0][1] / Math.max(1, ranking.reduce((sum, item) => sum + item[1], 0)),
+        kind: row.missing ? '未設定' : ranking[0][0],
+        confidence: row.missing ? 0 : ranking[0][1] / Math.max(1, ranking.reduce((sum, item) => sum + item[1], 0)),
         dateColor: dateColor(pixels, canvas.width, row, rowPitch),
-        preview: rowPreview(canvas, row, rowPitch, column)
+        preview: rowPreview(canvas, row, rowPitch, column),
+        obscured: Boolean(row.missing),
+        centerY: (row.start + row.end) / 2,
+        rowPitch
       };
     });
     return {
       rows: detailedRows,
       values: detailedRows.map(row => row.kind),
-      firstRowY: rows.length ? rows[0].start / canvas.height : 1,
-      lastRowY: rows.length ? rows[rows.length - 1].end / canvas.height : 0
+      firstRowY: tableRows.length ? tableRows[0].start / canvas.height : 1,
+      lastRowY: tableRows.length ? tableRows[tableRows.length - 1].end / canvas.height : 0
     };
   }
 
+  function parseTSVWords(tsv, imageWidth) {
+    return String(tsv || '').split(/\r?\n/).slice(1).map(line => {
+      const fields = line.split('\t');
+      return { left: Number(fields[6]), top: Number(fields[7]), width: Number(fields[8]), height: Number(fields[9]), confidence: Number(fields[10]), text: fields.slice(11).join('\t') };
+    }).filter(word => word.text && word.left < imageWidth * 0.15 && word.top > 250 && word.width < imageWidth * 0.15);
+  }
+
+  function dayTextScore(rawText, day) {
+    const raw = String(rawText).replace(/\D/g, '');
+    const expected = String(day);
+    if (!raw) return 0;
+    if (raw === expected) return 24;
+    if (raw.startsWith(expected)) return 19 - Math.min(8, (raw.length - expected.length) * 3);
+    if (raw.includes(expected)) return 8;
+    if (expected.length === 2 && raw.startsWith(expected[0]) && raw.endsWith(expected[1])) return 6;
+    return -4;
+  }
+
+  function attachRecognizedDates(sequence, words, days) {
+    sequence.rows.forEach(row => {
+      const candidates = words.filter(word => {
+        const center = word.top + word.height / 2;
+        return Math.abs(center - row.centerY) < row.rowPitch * 0.45;
+      });
+      row.dateWords = candidates.map(word => word.text);
+    });
+    let best = null;
+    for (let start = 1; start <= days - sequence.rows.length + 1; start++) {
+      let score = 0;
+      let recognized = 0;
+      sequence.rows.forEach((row, index) => {
+        const scores = (row.dateWords || []).map(text => dayTextScore(text, start + index));
+        if (scores.length) {
+          score += Math.max(...scores);
+          recognized++;
+        }
+      });
+      if (!best || score > best.score) best = { start, score, recognized };
+    }
+    sequence.recognizedStart = best?.start || null;
+    sequence.dateOCRScore = best?.score || 0;
+    sequence.recognizedDates = best?.recognized || 0;
+    sequence.rows.forEach((row, index) => { row.recognizedDay = sequence.recognizedStart ? sequence.recognizedStart + index : null; });
+  }
+
+  async function recognizeDates(images, sequences, days) {
+    if (!window.Tesseract) throw new Error('日付OCRを読み込めませんでした。ページを再読み込みしてください。');
+    const base = new URL('./ocr/', location.href);
+    const worker = await Tesseract.createWorker('eng', 1, {
+      workerPath: new URL('worker.min.js', base).href,
+      corePath: new URL('core/tesseract-core-simd-lstm.wasm.js', base).href,
+      langPath: new URL('lang', base).href,
+      logger: message => {
+        if (message.status === 'recognizing text') $('imageStatus').textContent = `日付をOCRしています… ${Math.round(message.progress * 100)}%`;
+      }
+    });
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: '11', tessedit_char_whitelist: '0123456789' });
+      for (let index = 0; index < images.length; index++) {
+        const result = await worker.recognize(images[index], {}, { text: false, tsv: true });
+        attachRecognizedDates(sequences[index], parseTSVWords(result.data.tsv, images[index].naturalWidth), days);
+      }
+    } finally {
+      await worker.terminate();
+    }
+  }
+
   function weekdayAlignmentScore(sequence, startDay) {
-    let score = 0;
+    let score = sequence.recognizedStart === startDay ? sequence.dateOCRScore * 3 + 40 : sequence.recognizedStart ? -Math.min(120, Math.abs(sequence.recognizedStart - startDay) * 35) : 0;
     sequence.rows.forEach((row, index) => {
+      if (row.obscured) return;
       const date = new Date(Number($('year').value), Number(monthSelect.value) - 1, startDay + index);
       const expected = date.getDay() === 6 ? '土' : date.getDay() === 0 ? '日' : '平日';
       if (row.dateColor === expected) score += expected === '平日' ? 1 : 5;
@@ -401,6 +518,7 @@
           const previous = firstByDay.get(secondStart + index);
           if (!previous) return;
           overlap++;
+          if (previous.kind === '未設定' || row.kind === '未設定') return;
           if (previous.kind === row.kind) score += 8;
           else { score -= 14; conflicts++; }
         });
@@ -429,6 +547,8 @@
       if (sequences.some(sequence => sequence.rows.length === 0)) {
         throw new Error(`勤務行を検出できない画像があります（画像1: ${sequences[0].rows.length}件、画像2: ${sequences[1].rows.length}件）。`);
       }
+      $('imageStatus').textContent = '勤務行を検出しました。続いて日付を読み取ります…';
+      await recognizeDates(images, sequences, days);
       const selected = placeImagesByDate(sequences, days);
       if (!selected) throw new Error('画像の日付位置を判断できませんでした。');
       entries = Array.from({ length: days }, (_, index) => ({ day: index + 1, kind: '未設定', include: false }));
@@ -436,6 +556,10 @@
         placement.sequence.rows.forEach((row, rowIndex) => {
           const entryIndex = placement.start + rowIndex - 1;
           const current = entries[entryIndex];
+          if (row.kind === '未設定') {
+            if (!current.preview) current.preview = row.preview;
+            return;
+          }
           if (current.kind === '未設定' || row.confidence > (current.confidence || 0)) {
             entries[entryIndex] = {
               day: entryIndex + 1,
@@ -452,10 +576,10 @@
       $('scheduleHeading').textContent = `3. ${column}列目の勤務`;
       render();
       const placementsByDate = selected.placements.map((placement, index) => ({ ...placement, file: files[index] })).sort((a, b) => a.start - b.start);
-      const ranges = placementsByDate.map(item => `「${item.file.name}」=${item.start}〜${item.start + item.sequence.rows.length - 1}日`).join('、');
+      const ranges = placementsByDate.map(item => `「${item.file.name}」=${item.start}〜${item.start + item.sequence.rows.length - 1}日（日付OCR ${item.sequence.recognizedDates}行）`).join('、');
       const warning = selected.coverage === days ? '' : ` 未設定が${days - selected.coverage}日あります。`;
       const conflict = selected.conflicts ? ` 重複部分で${selected.conflicts}件の不一致があります。原画像と見比べて修正してください。` : '';
-      $('imageStatus').textContent = `${column}列目を読み取り、日付・曜日色・重複勤務から画像位置を判定しました。${ranges}、重複${selected.overlap}日。${warning}${conflict}`;
+      $('imageStatus').textContent = `${column}列目と日付を直接読み取りました。${ranges}、重複${selected.overlap}日。${warning}${conflict}`;
     } catch (error) {
       $('imageStatus').textContent = error.message;
     }
