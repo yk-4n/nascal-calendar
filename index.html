@@ -148,7 +148,7 @@
   <footer>画像と勤務情報は端末内だけで処理されます</footer>
 </main>
 
-<script src="./ocr/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js"></script>
 <script>
 (() => {
   'use strict';
@@ -465,11 +465,10 @@
 
   async function recognizeDates(images, sequences, days) {
     if (!window.Tesseract) throw new Error('日付OCRを読み込めませんでした。ページを再読み込みしてください。');
-    const base = new URL('./ocr/', location.href);
     const worker = await Tesseract.createWorker('eng', 1, {
-      workerPath: new URL('worker.min.js', base).href,
-      corePath: new URL('core/tesseract-core-simd-lstm.wasm.js', base).href,
-      langPath: new URL('lang', base).href,
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0',
+      langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',
       logger: message => {
         if (message.status === 'recognizing text') $('imageStatus').textContent = `日付をOCRしています… ${Math.round(message.progress * 100)}%`;
       }
@@ -581,7 +580,10 @@
       const conflict = selected.conflicts ? ` 重複部分で${selected.conflicts}件の不一致があります。原画像と見比べて修正してください。` : '';
       $('imageStatus').textContent = `${column}列目と日付を直接読み取りました。${ranges}、重複${selected.overlap}日。${warning}${conflict}`;
     } catch (error) {
-      $('imageStatus').textContent = error.message;
+      console.error(error);
+      $('imageStatus').textContent = error?.message === 'Load failed' || error?.message === 'Load Failed'
+        ? '日付OCRを読み込めませんでした。インターネット接続を確認し、Safariでページを再読み込みしてください。'
+        : (error?.message || '画像の読み取りに失敗しました。');
     }
   }
 
